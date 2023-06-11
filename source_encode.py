@@ -13,7 +13,7 @@ class Node:
     def __init__(self,val:int,letter:str=None,child:list=None):
         self.val=val
         self.letter = letter
-        self.child = child
+        self.child = child  #
         self.code = []
 
 def load_txt(file_path):
@@ -71,9 +71,13 @@ def Huffman_code_tree(word_dict,Q):
 
     #建立Huffman树
     while len(Nodes)>1:
-        child_nodes=[node for i,node in enumerate(Nodes) if i<Q]    #child_nodes是将要合并的子节点
-        sum=int(np.array([node.val for node in child_nodes]).sum()) #对子节点的val求和
-        new_node=Node(sum,child=child_nodes)                        #新建节点
+        child_nodes=[]                                              #child_nodes是将要合并的子节点
+        sum=0                                                       #对子节点的val求和
+        for i, node in enumerate(Nodes):
+            if i<Q:
+                child_nodes.append(node)
+                sum+=node.val
+        new_node=Node(val= sum,child= child_nodes)                  #新建节点
         Nodes.append(new_node)                                      #加入新节点
         Nodes=Nodes[Q:]                                             #删除合并的节点
         Nodes=sorted(Nodes,key=lambda x:x.val)                      #重新升序排列
@@ -93,7 +97,6 @@ def get_Huffman_code(root,code_dict):
 def Shannon_code(word_dict,Q):
     #升序排列
     word_dict = {k: v for k, v in sorted(word_dict.items(), key=lambda x: -x[1])}
-    # print(word_dict)
     code_dict={}
     Pa=[0]
     for letter,p in word_dict.items():
@@ -104,6 +107,13 @@ def Shannon_code(word_dict,Q):
     return code_dict
 
 def get_code(pa,lenth,Q):
+    """
+    给定编码长度、Q、pa概率，返回编码
+    :param pa:
+    :param lenth: 编码长度
+    :param Q: Q-ary
+    :return:
+    """
     code=[]
     for i in range(lenth):
         pa*=Q
@@ -112,35 +122,60 @@ def get_code(pa,lenth,Q):
     return code
 
 if __name__=='__main__':
+    # input Q
+    Q = int(input("Please input the code alphabet length Q:"))
+
     #entropy
     string = load_txt("Jobs_speech.txt")
     entropy, distribution_dict = calc_entropy_str(string)
-    print("The entropy of the speech:", entropy)
+    print("The entropy of the speech:(base is 2)", entropy)
+    if(Q!=2):
+        print(f"The entropy of the speech:(base is {Q})", entropy/(math.log(Q,2)),"\n")
 
-    #input Q
-    Q=int(input("Please input the code alphabet length Q:"))
-    print(distribution_dict)
     #Huffman encode
     root=Huffman_code_tree(copy.deepcopy(distribution_dict), Q)
-    code_dict={}
-    get_Huffman_code(root,code_dict)
-    code_dict= {k:v for k,v in code_dict.items() if len(k)==1}
-    print([len(i) for i in code_dict.values()])
-    average_code_length = np.array([len(code_dict[key]) * distribution_dict[key] for key in code_dict.keys()]).sum()
-    print("the average Huffman code length is:",average_code_length)
-    print("the Huffman code(sorted by code length) is: ", code_dict)
-    code_dict= {k:v for k,v in sorted(code_dict.items(), key=lambda x: x[0])}
-    print("the Huffman code(sorted by string) is: ",code_dict)
+    code_dict_Huffman={}
+    get_Huffman_code(root,code_dict_Huffman)
+    code_dict_Huffman= {k:v for k,v in code_dict_Huffman.items() if len(k)==1}
+    average_code_length_huffman = np.array([len(code_dict_Huffman[key]) * distribution_dict[key] for key in code_dict_Huffman.keys()]).sum()
+    print("the average Huffman code length is:",average_code_length_huffman)
+    code_dict_Huffman=  {k: v for k, v in sorted(code_dict_Huffman.items(), key = lambda x: x[0])}
+    print("the Huffman code(sorted by string) is: ",code_dict_Huffman)
+    code_dict_Huffman = {k: v for k, v in sorted(code_dict_Huffman.items(), key = lambda x: len(x[1]))}
+    print("the Huffman code(sorted by code length) is: ", code_dict_Huffman)
     print("\n")
+
     #Shannon_encode
-    code_dict=Shannon_code(distribution_dict,Q)
-    code_dict = {k: v for k, v in code_dict.items() if len(k) == 1}
-    print([len(i) for i in code_dict.values()])
-    average_code_length = np.array([len(code_dict[key]) * distribution_dict[key] for key in code_dict.keys()]).sum()
-    print("the average Shannon code length is:", average_code_length)
-    print("the Shannon code(sorted by code length) is: ", code_dict)
-    code_dict = {k: v for k, v in sorted(code_dict.items(), key=lambda x: x[0])}
-    print("the Shannon code(sorted by string) is: ", code_dict)
+    code_dict_Shannon=Shannon_code(distribution_dict,Q)
+    code_dict_Shannon = {k: v for k, v in code_dict_Shannon.items() if len(k) == 1}
+    average_code_length_Shannon= np.array([len(code_dict_Shannon[key]) * distribution_dict[key] for key in code_dict_Shannon.keys()]).sum()
+    print("the average Shannon code length is:", average_code_length_Shannon)
+    code_dict_Shannon = {k: v for k, v in sorted(code_dict_Shannon.items(), key = lambda x: x[0])}
+    print("the Shannon code(sorted by string) is: ", code_dict_Shannon)
+    code_dict_Shannon = {k: v for k, v in sorted(code_dict_Shannon.items(), key = lambda x: len(x[1]))}
+    print("the Shannon code(sorted by code length) is: ", code_dict_Shannon)
 
-
-
+    print("\nYou can see the code clearly in generated txt documents.")
+    #write txt
+    with open("Huffman_Q_"+str(Q)+"_codebook.txt", "w",encoding='utf-8') as f:
+        f.write(f"the average Huffman code({Q}-ary) length is:")
+        f.write(str(average_code_length_huffman))
+        f.write("\n")
+        for letter,code in code_dict_Huffman.items():
+            f.write(letter)
+            f.write(" : prob:")
+            f.write("{:.3f}".format(distribution_dict[letter]))
+            f.write(" code:")
+            f.write(str(code))
+            f.write("\n")
+    with open("Shannon_Q_"+str(Q)+"_codebook.txt", "w",encoding='utf-8') as f:
+        f.write(f"the average Shannon code({Q}-ary) length is:")
+        f.write(str(average_code_length_Shannon))
+        f.write("\n")
+        for letter,code in code_dict_Shannon.items():
+            f.write(letter)
+            f.write(" : prob:")
+            f.write("{:.3f}".format(distribution_dict[letter]))
+            f.write(" code:")
+            f.write(str(code))
+            f.write("\n")
