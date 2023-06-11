@@ -97,16 +97,16 @@ def Shannon_code(word_dict,Q):
     code_dict={}
     Pa=[0]
     for letter,p in word_dict.items():
-        code_length=int(math.log(1/p,2))+1
-        code=get_code(Pa[-1],code_length)
+        code_length=int(math.log(1/p,Q))+1
+        code=get_code(Pa[-1],code_length,Q)
         code_dict[letter]=code
         Pa.append(Pa[-1]+p)
     return code_dict
 
-def get_code(pa,lenth):
+def get_code(pa,lenth,Q):
     code=[]
     for i in range(lenth):
-        pa*=2
+        pa*=Q
         code.append(int(pa>=1))
         pa= pa if pa<1 else pa-1
     return code
@@ -119,21 +119,23 @@ if __name__=='__main__':
 
     #input Q
     Q=int(input("Please input the code alphabet length Q:"))
-
+    print(distribution_dict)
     #Huffman encode
     root=Huffman_code_tree(copy.deepcopy(distribution_dict), Q)
     code_dict={}
     get_Huffman_code(root,code_dict)
     code_dict= {k:v for k,v in code_dict.items() if len(k)==1}
+    print([len(i) for i in code_dict.values()])
     average_code_length = np.array([len(code_dict[key]) * distribution_dict[key] for key in code_dict.keys()]).sum()
     print("the average Huffman code length is:",average_code_length)
     print("the Huffman code(sorted by code length) is: ", code_dict)
     code_dict= {k:v for k,v in sorted(code_dict.items(), key=lambda x: x[0])}
     print("the Huffman code(sorted by string) is: ",code_dict)
-
+    print("\n")
     #Shannon_encode
     code_dict=Shannon_code(distribution_dict,Q)
     code_dict = {k: v for k, v in code_dict.items() if len(k) == 1}
+    print([len(i) for i in code_dict.values()])
     average_code_length = np.array([len(code_dict[key]) * distribution_dict[key] for key in code_dict.keys()]).sum()
     print("the average Shannon code length is:", average_code_length)
     print("the Shannon code(sorted by code length) is: ", code_dict)
